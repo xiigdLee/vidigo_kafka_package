@@ -6,9 +6,9 @@ from confluent_kafka.cimpl import KafkaError
 from typing import Dict, Union, List
 from dataclasses import dataclass
 
-from vidigo_kafka.utils import vidigoLogger
+from vidigo_kafka.utils.kafka_logger import vidigoLogger
 
-@dataclass
+
 class KafkaHealthCheck():    
     '''
     Kafka 상태 파악 모듈입니다.
@@ -20,7 +20,7 @@ class KafkaHealthCheck():
     - broker_id : list, 브로커 ID 명시
     - request_timeout_ms : integer, 타임아웃 제한 시간 명시(ms)
     '''
-    def __post_init__(self, bootstrap_servers, broker_id, request_timeout_ms) :
+    def __init__(self, bootstrap_servers, broker_id, request_timeout_ms) :
         self.boostrap_servers : str = bootstrap_servers
         self.brokerid :list = broker_id
         self.request_timeout_ms : int = request_timeout_ms
