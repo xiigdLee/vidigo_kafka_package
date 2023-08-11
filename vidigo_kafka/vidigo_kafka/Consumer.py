@@ -1,36 +1,33 @@
 from confluent_kafka import Consumer, KafkaError, KafkaException, TopicPartition, Producer
 
 from dataclasses import dataclass
-from typing import Dict
+from typing import Dict, List
 import time
 
 from vidigo_kafka.utils import KafkaHealthCheck
 
 @dataclass
 class vidigoConsumer(KafkaHealthCheck) :
-
-    # default option    
-    service: str = "vidigo"
-    group_id: str = "vidigo_consumer_1"
-    auto_offset_reset : str = "earliest"
     
-    # transaction
-    enable_auto_commit : bool = False  # 트랜잭션 적용 때문에 수동으로 커밋해야 함.
-    isolation_level : str = "read_committed"
-
-    #throughput
-    fetch_min_bytes : int = 525288 # 대략 청크 2개 분량
-    request_timeout_ms : int = 10000
-    session_timeout_ms : int = 30000
-    heartbeat_interval_ms : int = 10000
-    max_poll_interval_ms : int = 30000
-    # fetch_max_wait_ms : int = 100
-    # max_poll_records : int = 100
-
-    transaction_id : str = "vidigo_transaction_consumer1"
-
-    def __post_init__(self):
-        super().__post_init__()
+    def __init__(self, bootstrap_servers, broker_id:List[int]):
+        super().__init__(bootstrap_servers, broker_id, None)
+        # default option    
+        self.service: str = "vidigo"
+        self.group_id: str = "vidigo_consumer_1"
+        self.auto_offset_reset : str = "earliest"
+        
+        # transaction
+        self.enable_auto_commit : bool = False  # 트랜잭션 적용 때문에 수동으로 커밋해야 함.
+        self.isolation_level : str = "read_committed"
+        
+        #throughput
+        self.fetch_min_bytes : int = 525288 # 대략 청크 2개 분량
+        self.session_timeout_ms : int = 30000
+        self.heartbeat_interval_ms : int = 10000
+        self.max_poll_interval_ms : int = 30000
+        # fetch_max_wait_ms : int = 100
+        # max_poll_records : int = 100
+        
         self.configs: dict = {
             "bootstrap.servers" :self.boostrap_servers,
             "group.id" : self.group_id,
@@ -41,7 +38,6 @@ class vidigoConsumer(KafkaHealthCheck) :
             "isolation.level" : self.isolation_level,
             "fetch.min.bytes" : self.fetch_min_bytes,
             
-            "request.timeout.ms" : self.request_timeout_ms,
             "max.poll.interval.ms" : self.max_poll_interval_ms,
             "session.timeout.ms" : self.session_timeout_ms,
             "heartbeat.interval.ms" : self.heartbeat_interval_ms,

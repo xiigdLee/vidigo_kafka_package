@@ -2,19 +2,18 @@ from confluent_kafka.admin import AdminClient, NewTopic, RESOURCE_BROKER, Config
 from confluent_kafka.error import KafkaException
 from confluent_kafka.cimpl import KafkaError
 
-from typing import Dict, Union
+from typing import Dict, Union, List
 from dataclasses import dataclass
 
 from vidigo_kafka.utils import KafkaHealthCheck
 
-@dataclass
 class vidigoAdminClient(KafkaHealthCheck):
     
-    client_id : int = "kafka_adimin"
-    connections_max_idle_ms : int = 300000
+    def __init__(self, bootstrap_servers:str, broker_id:List[int]):
+        super().__init__(bootstrap_servers, broker_id, None)
+        self.client_id : int = "kafka_adimin"
+        self.connections_max_idle_ms : int = 300000
     
-    def __post_init__(self):
-        super().__post_init__()
 
         self.configs = {
             "bootstrap.servers" : self.boostrap_servers,
@@ -29,6 +28,7 @@ class vidigoAdminClient(KafkaHealthCheck):
         }
         
         self.client = AdminClient(self.configs)
+
 
 
     def view_topics(self, timeout_sec=0.5):

@@ -75,7 +75,7 @@ class chunkUtils:
         return base64.b64encode(value).decode('utf-8')
 
 
-    def split_str(str_value:str, chunk_num:int) -> Tuple[int, List[str]]:
+    def split_str(self, str_value:str, chunk_num:int) -> Tuple[int, List[str]]:
         """
         Split data by chunk size
         """

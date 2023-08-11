@@ -7,33 +7,34 @@ from datetime import datetime
 from glob import glob
 import asyncio, json, time
 
+from typing import List
+
 from vidigo_kafka.utils import chunkUtils, KafkaHealthCheck
 
-@dataclass
 class vidigoAIOProducer(KafkaHealthCheck) :
 
-    dist: str = "results"
-    service: str = "vidigo"
-    uid: str = "VIDIGOUID1"
-    elapsed_bar: float = 0.03
-    chunk_size:int = 102400
-    meta_info_type: str = "analysis"
-    meta_info_name: str = "analysis_result"
-    
-    # default properties
-    message_max_bytes: int = 1048576
-    batch_size: int = chunk_size * 2 + 1000
-    linger_ms: int = 100
-    
-    # transaction & retries
-    enable_idempotence: bool = True
-    transaction_id: str = f"kafka_transaction_{uid}1"
-    max_in_flight_requests_per_connection: int = 4
-    acks: str = "all"
-    delivery_timeout_ms : int = 3000
+    def __init__(self, bootstrap_servers, broker_id:List[int], request_timeout_ms:int, chunk_size:int, linger_ms, loop=None) :
 
-    def __post_init__(self, loop=None) :
-        super().__post_init__()
+        super().__init__(bootstrap_servers, broker_id, request_timeout_ms)
+        
+        self.dist: str = "results"
+        self.service: str = "vidigo"
+        self.uid: str = "VIDIGOUID1"
+        self.elapsed_bar: float = 0.03
+        self.chunk_size:int = 102400
+        self.meta_info_type: str = "analysis"
+        self.meta_info_name: str = "analysis_result"
+        
+        # default properties
+        self.message_max_bytes: int = 1048576
+        self.batch_size: int = chunk_size * 2 + 1000
+        self.linger_ms: int = linger_ms
+        # transaction & retries
+        self.enable_idempotence: bool = True
+        self.transaction_id: str = f"kafka_transaction_{self.uid}1"
+        self.max_in_flight_requests_per_connection: int = 4
+        self.acks: str = "all"
+        self.delivery_timeout_ms : int = 3000
         
         self.configs: dict = {
             "bootstrap.servers" : self.boostrap_servers,
