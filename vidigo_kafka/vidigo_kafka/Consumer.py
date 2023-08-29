@@ -61,7 +61,11 @@ class vidigoConsumer(KafkaHealthCheck) :
             # "sasl.plain.username" : "vadmin", 
             # "sasl.plain.password" : "admin",
         }
-    
+
+        # sasl 인증
+        self.client.set_sasl_credential("vadmin", "vidigo_kafka")
+        self.dlq_producer.set_sasl_credential("vadmin", "vidigo_kafka")
+
         self.dlq_producer = Producer(self.dlq_configs)
 
     def send_deadletter(self, topic, value) :

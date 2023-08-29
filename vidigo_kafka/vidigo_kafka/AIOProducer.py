@@ -51,7 +51,6 @@ class vidigoAIOProducer(KafkaHealthCheck) :
             # "sasl.plain.username" : "vadmin", 
             # "sasl.plain.password" : "admin",
         }
-    
 
 
         self._loop = loop or asyncio.get_event_loop()
@@ -61,6 +60,8 @@ class vidigoAIOProducer(KafkaHealthCheck) :
         self._poll_thread = Thread(target=self._poll_loop)
         self._poll_thread.start()
 
+        # sasl 인증
+        self.client.set_sasl_credential("vadmin", "vidigo_kafka")
 
 
     def _poll_loop(self):

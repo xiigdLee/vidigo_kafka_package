@@ -28,30 +28,43 @@ class vidigoAdminClient(KafkaHealthCheck):
         }
         
         self.client = AdminClient(self.configs)
+        
+        # sasl 인증
+        self.client.set_sasl_credential("vadmin", "vidigo_kafka")
 
-
-
-    def view_topics(self, timeout_sec=0.5):
+        # adminclien로 dynamic configuration 가능한 옵션 리스트
+        self.dynamic_config_lists=["advertised.listeners","listeners","principal.builder.class","sasl.enabled.mechanisms","sasl.kerberos.kinit.cmd",
+                                "sasl.kerberos.min.time.before.relogin","sasl.kerberos.principal.to.local.rules", "sasl.kerberos.service.name","sasl.kerberos.ticket.renew.jitter",
+                                "sasl.kerberos.ticket.renew.window.factor","sasl.login.refresh.buffer.seconds","sasl.login.refresh.min.period.seconds","sasl.login.refresh.window.factor",
+                                "sasl.login.refresh.window.jitter","sasl.mechanism.inter.broker.protocol","ssl.client.auth","ssl.enabled.protocols","ssl.keymanager.algorithm",
+                                "ssl.protocol", "ssl.provider", "ssl.trustmanager.algorithm","listener.security.protocol.map","ssl.endpoint.identification.algorithm", "ssl.secure.random.implementation", 
+                                "background.threads", "compression.type", "log.flush.interval.messages","log.retention.bytes","log.segment.bytes", "log.segment.delete.delay.ms","message.max.bytes", "min.insync.replicas",
+                                "num.io.threads","num.network.threads", "num.recovery.threads.per.data.dir", "num.replica.fetchers", "unclean.leader.election.enable",
+                                "log.cleaner.backoff.ms", "log.cleaner.dedupe.buffer.size", "log.cleaner.delete.retention.ms", "log.cleaner.io.buffer.load.factor", "log.cleaner.io.buffer.size", 
+                                "log.cleaner.io.max.bytes.per.second", "log.cleaner.max.compaction.lag.ms", "log.cleaner.min.cleanable.ratio", "log.cleaner.min.compaction.lag.ms", "log.cleaner.threads",
+                                "log.cleanup.policy", "log.index.interval.bytes", "log.index.size.max.bytes", "max.connections.per.ip.overrides","ssl.cipher.suites",
+                                "log.message.timestamp.difference.max.ms","log.message.timestamp.type","log.preallocate","max.connection.creation.rate","max.connections","max.connections.per.ip",
+                                "log.message.downconversion.enable","metric.reporters"]
+    
+    # 현재 클러스터 내 모든 토픽 조회
+    def view_topics(self, timeout_sec:int=0.5) -> Dict[str,List[str]]:
         '''
         클러스터 내 모든 토픽 조회
         '''
         try:
+            # broker health cheack 후 진행
             self.check_broker_health()
-            
-            if all_topic_lists not in list(all_topic_lists.topics.keys()) :
-                raise KafkaError(-186, "해당 토픽은 없는 토픽입니다.")
-            if bool(all_topic_lists.topics) == False :
-                raise KafkaError(-188, "브로커 내에 토픽이 존재하지 않습니다.")
         
-            topic_info_list=[]
-            all_topic_lists = self.client.list_topics(timeout=timeout_sec)
-
-            for k, l in all_topic_lists.topics.items(): # type: {topicname : TopicMetadata class } 
-                print(f"SUCCESS : 토픽 이름 = '{k}' / 파티션 목록 = {list(l.partitions)}")
-                topic_info = {"topic" : k, "partitions": list(l.partitions)}
-                topic_info_list.append(topic_info)
-            data = {"status" : True, "topics" : topic_info_list}
-            return data
+            # topic 리스트 
+            all_topic_lists = list(self.client.list_topics(timeout=timeout_sec).topics.keys())
+            
+            # 리스트가 빈 리스트라면
+            if bool(all_topic_lists) == False :
+                raise KafkaError(-188, "브로커 내에 토픽이 존재하지 않습니다.")
+            else :
+                # 결과 dict
+                data : Dict[str, List[str]] = {"status" : True, "topics" : all_topic_lists}
+                return data
         
         except TypeError as te:
             te.args = (KafkaError(-154, "find_topic 타입은 str 타입이여야 합니다."),)
@@ -66,14 +79,14 @@ class vidigoAdminClient(KafkaHealthCheck):
     
     
     # New Topic 핸들링 해야 함 / client 객체 연동 실패, 리턴 값 조정
-    def new_topics(self, set_topic="test0", set_partition:int=1, set_replication_factor:int=1, timeout_sec=2) -> Dict[str,Union[str, bool]] :
+    def new_topics(self, set_topic:str="test0", set_partition:int=1, set_replication_factor:int=1, timeout_sec:int=2) -> Dict[str,Union[str, bool]] :
         '''
         새로운 토픽 생성
         '''        
         try:
+            # broker health cheack 후 진행
             self.check_broker_health()
 
-        
             # 인자 타입이 안 맞다면?
             if (type(set_partition) is not int) or (type(set_replication_factor) is not int):
                 raise KafkaError(-154,"set_partition 혹은 set_replication_factor 인자 타입이 안 맞습니다.")           
@@ -83,8 +96,7 @@ class vidigoAdminClient(KafkaHealthCheck):
             new_topic_list = self.client.create_topics(new_topics=[new_topic], request_timeout=timeout_sec)
             
             # 토픽 생성
-            ## v는 future class로 토픽이 이미 있으면 여기에 담겨서 kafkaError가 날 것. 내일 직접 테스트 해봐야 함.
-            
+            ## v는 future class로 토픽이 이미 있으면 여기에 담겨서 kafkaError가 날 것.
             for k,_ in new_topic_list.items() :
                 if k == None :
                     raise KafkaError(-196, "토픽이 생성되지 않았습니다.")
@@ -107,13 +119,13 @@ class vidigoAdminClient(KafkaHealthCheck):
             self.logger.logging_failure(f"9999 | {kee.str()}")
 
 
-    def del_topics(self, set_topic="test", timeout_sec=2):
+    # 토픽 삭제 메서드
+    def del_topics(self, set_topic:str="test", timeout_sec:int=2) -> Dict[str, str]:
         '''
         토픽 삭제
         '''
         try:
-            if self.check_broker_health() != True :
-                self.logger.logging_failure(f"FAILURE : [{self.uid}] | {data}")
+            self.check_broker_health()
 
             # 삭제하고자 하는 토픽 정보
             del_topic_list = self.client.delete_topics(topics=[set_topic], request_timeout=timeout_sec)
@@ -140,6 +152,7 @@ class vidigoAdminClient(KafkaHealthCheck):
         except Exception as e :
             print(f"ERROR : (9999) {str(e)} 다시 확인 후 재시도 바랍니다.")
             self.logger.logging_failure(f"9999 | {kee.str()}")
+
     
     
     
